@@ -1,0 +1,39 @@
+"""
+Surfa Ingest SDK
+
+Official Python SDK for ingesting live traffic events to Surfa Analytics.
+
+Example:
+    >>> from surfa_ingest import SurfaClient
+    >>> 
+    >>> with SurfaClient(ingest_key="sk_live_...") as client:
+    ...     client.track({
+    ...         "kind": "tool",
+    ...         "subtype": "call_started",
+    ...         "tool_name": "search_web"
+    ...     })
+"""
+
+__version__ = "0.1.0"
+
+from .client import SurfaClient
+from .events import Event
+from .exceptions import (
+    SurfaError,
+    SurfaConfigError,
+    SurfaNetworkError,
+    SurfaValidationError,
+    SurfaAuthError,
+    SurfaIngestError,
+)
+
+__all__ = [
+    "SurfaClient",
+    "Event",
+    "SurfaError",
+    "SurfaConfigError",
+    "SurfaNetworkError",
+    "SurfaValidationError",
+    "SurfaAuthError",
+    "SurfaIngestError",
+]
