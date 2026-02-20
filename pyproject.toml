@@ -43,8 +43,9 @@ dev = [
 [project.urls]
 Homepage = "https://surfa.dev"
 Documentation = "https://docs.surfa.dev"
-Repository = "https://github.com/yourusername/surfa"
-Issues = "https://github.com/yourusername/surfa/issues"
+Repository = "https://github.com/gamladz/surfa-ingest"
+Issues = "https://github.com/gamladz/surfa-ingest/issues"
+PyPI = "https://pypi.org/project/surfa-ingest/"
 
 [tool.setuptools.packages.find]
 where = ["."]
