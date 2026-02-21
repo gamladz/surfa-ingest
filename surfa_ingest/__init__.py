@@ -18,6 +18,7 @@ __version__ = "0.1.0"
 
 from .client import SurfaClient
 from .events import Event
+from .utils import generate_session_id
 from .exceptions import (
     SurfaError,
     SurfaConfigError,
@@ -30,6 +31,7 @@ from .exceptions import (
 __all__ = [
     "SurfaClient",
     "Event",
+    "generate_session_id",
     "SurfaError",
     "SurfaConfigError",
     "SurfaNetworkError",

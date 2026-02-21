@@ -196,7 +196,7 @@ class SurfaClient:
         event = create_session_started(**kwargs)
         self.track(event)
     
-    def session_end(self, **kwargs: Any) -> None:
+    def session_end(self, task_completed: Optional[bool] = None, **kwargs: Any) -> None:
         """
         Track session end event.
         
@@ -204,13 +204,21 @@ class SurfaClient:
         After calling this, the session is marked as ended.
         
         Args:
+            task_completed: Whether the task was actually completed (optional).
+                           If True, indicates successful task completion.
+                           If False, indicates task was not completed.
+                           If None, server will infer from event sequence.
             **kwargs: Additional fields for the event
         """
         if not self._session_ended:
+            # Add task_completed to kwargs if specified
+            if task_completed is not None:
+                kwargs['task_completed'] = task_completed
+            
             event = create_session_ended(**kwargs)
             self.track(event)
             self._session_ended = True
-            logger.info(f"Session ended: {self.session_id}")
+            logger.info(f"Session ended: {self.session_id} (task_completed={task_completed})")
     
     # Legacy aliases
     def session_started(self) -> None:
@@ -509,7 +517,9 @@ class SurfaClient:
         
         try:
             # Mark session as ended
-            self.session_ended()
+            # If exception occurred, mark task as not completed
+            task_completed = exc_type is None
+            self.session_end(task_completed=task_completed)
             
             # Flush remaining events
             self.flush()

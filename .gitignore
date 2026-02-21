@@ -75,3 +75,4 @@ dmypy.json
 # OS
 .DS_Store
 Thumbs.db
+PUBLISH_COMPLETE.md
