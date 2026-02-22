@@ -141,19 +141,71 @@ class SurfaClient:
         
         logger.info(f"Set runtime metadata: provider={provider}, model={model}, mode={mode}")
     
-    def track(self, event: Dict[str, Any]) -> None:
+    def _extract_mcp_context(self, ctx: Any, event: Dict[str, Any]) -> None:
         """
-        Track an event (alias for track_raw).
+        Extract available fields from MCP context object.
+        
+        Supports multiple MCP frameworks (FastMCP, etc.).
+        Never raises exceptions - always fails gracefully.
+        
+        Args:
+            ctx: MCP context object (e.g., FastMCP Context)
+            event: Event dictionary to enrich with context fields
+        """
+        try:
+            # Extract client_id if available (FastMCP Context)
+            if hasattr(ctx, 'client_id') and ctx.client_id:
+                event.setdefault('client_id', ctx.client_id)
+                logger.debug(f"Extracted client_id from context: {ctx.client_id}")
+            
+            # NOTE: We do NOT extract session_id from MCP context
+            # The SDK's self.session_id is used for grouping events into executions
+            # MCP's ctx.session_id is a different concept (protocol session)
+            
+            # Extract request_id if available (FastMCP Context)
+            if hasattr(ctx, 'request_id') and ctx.request_id:
+                event.setdefault('request_id', ctx.request_id)
+                logger.debug(f"Extracted request_id from context: {ctx.request_id}")
+            
+            # Future: Support other MCP frameworks
+            # elif isinstance(ctx, OtherMCPContext):
+            #     event.setdefault('client_id', ctx.get_client_id())
+            
+        except Exception as e:
+            # Always fail gracefully - never break tracking
+            logger.warning(f"Failed to extract MCP context (non-fatal): {e}")
+    
+    def track(self, event: Dict[str, Any], ctx: Optional[Any] = None) -> None:
+        """
+        Track an event with optional MCP context auto-extraction.
         
         The event will be buffered and sent when the buffer reaches flush_at
         or when flush() is called explicitly.
         
         Args:
             event: Event dictionary with at least 'kind' field
+            ctx: Optional MCP context object (e.g., FastMCP Context).
+                 If provided, automatically extracts client_id, session_id, etc.
+                 
+        Example:
+            # Without context
+            client.track({"kind": "tool", "subtype": "call_started"})
+            
+            # With MCP context (auto-extracts fields)
+            @mcp.tool
+            def my_tool(ctx: Context) -> str:
+                client.track({
+                    "kind": "tool",
+                    "subtype": "call_started"
+                }, ctx=ctx)  # Auto-extracts client_id, session_id!
             
         Raises:
             SurfaValidationError: If event is invalid
         """
+        # Auto-extract MCP context if provided
+        if ctx:
+            self._extract_mcp_context(ctx, event)
+        
         self.track_raw(event)
     
     def track_raw(self, event_dict: Dict[str, Any]) -> None:
