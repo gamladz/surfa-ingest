@@ -48,6 +48,7 @@ class Uploader:
         max_retries: int = 1,
         runtime: Optional[Dict[str, Any]] = None,
         debug: bool = False,
+        key_source: str = "SURFA_API_KEY",
     ) -> None:
         self.ingest_key = ingest_key
         self.api_url = api_url.rstrip("/")
@@ -57,6 +58,8 @@ class Uploader:
         self.max_retries = max_retries
         self.runtime = runtime
         self.debug = debug
+        # Where the key came from, named in the rejected-key warning
+        self.key_source = key_source
 
         self._queue: List[Tuple[str, Dict[str, Any]]] = []
         self._cond = threading.Condition()
@@ -252,7 +255,7 @@ class Uploader:
             warn(
                 f"Surfa rejected the ingest key (HTTP {status}{': ' + reason if reason else ''}). "
                 f"Key used: {self.ingest_key[:16]}… ({len(self.ingest_key)} chars), sent to {self.api_url}. "
-                "Check SURFA_API_KEY is the full key shown once when it was created "
+                f"Check {self.key_source} is the full key shown once when it was created "
                 "(Surfa → Settings → API Keys). Tracking is off until restart."
             )
             return "unauthorized"

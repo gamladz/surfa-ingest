@@ -5,6 +5,11 @@ All notable changes to surfa-ingest will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- The rejected-key warning names where the key came from: `SURFA_API_KEY`, or the `api_key` passed to `with_surfa()` (it always said `SURFA_API_KEY`, which misled servers that pass their own variable, e.g. `SURFA_INGEST_KEY`).
+
 ## [0.3.0] - 2026-10-14
 
 ### Added

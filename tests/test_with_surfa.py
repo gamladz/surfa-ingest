@@ -271,6 +271,18 @@ async def test_rejected_key_disables_tracking_with_one_warning(ingest, capsys):
     err = capsys.readouterr().err
     assert err.count("Surfa rejected the ingest key") == 1
     assert "key_not_found" in err
+    # Names where the key came from: here the api_key argument, not the env var
+    assert "Check the api_key passed to with_surfa()" in err
+
+
+async def test_rejected_key_from_environment_names_the_variable(ingest, capsys, monkeypatch):
+    ingest.mode = "401"
+    monkeypatch.setenv("SURFA_API_KEY", TEST_KEY)
+    server = build_server("fastmcp", lambda s: with_surfa(s, api_url=ingest.url, flush_delay_s=0))
+    async with connect("fastmcp", server) as call:
+        await call("add", {"a": 1, "b": 1})
+        flush_surfa(2)
+    assert "Check SURFA_API_KEY is the full key" in capsys.readouterr().err
 
 
 async def test_invalid_key_format_is_a_warning_not_an_error(ingest, capsys):

@@ -259,6 +259,7 @@ def _get_uploader(api_key, api_url, framework: str, options) -> Optional[Uploade
             key,
             url,
             runtime={"mode": "mcp_server", "sdk": "with_surfa-py", "framework": framework},
+            key_source="SURFA_API_KEY" if not api_key else "the api_key passed to with_surfa()",
             **options,
         )
         uploader.tick_callbacks.append(_end_idle_sessions)
