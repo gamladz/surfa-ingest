@@ -5,6 +5,16 @@ All notable changes to surfa-ingest will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-14
+
+### Added
+- **`with_surfa(server)`**: one-line capture for MCP servers. Works with standalone FastMCP (2.x–4.x), the official SDK's `FastMCP` (1.x) and `MCPServer` (2.x), and the low-level `Server`. Captures every tool call (arguments with secrets masked, latency, errors, response size) and the client's name and version, grouped into sessions. Same events as the TypeScript `withSurfa`.
+- `flush_surfa()` and `shutdown_surfa()` for serverless handlers and custom signal handlers.
+- Uploads run on a background thread with a bounded queue, a 5 s timeout and at most one retry; tool calls never wait on Surfa and never see its errors.
+
+### Changed
+- `SurfaClient`'s default `api_url` is now `SURFA_API_URL`, else `https://app.surfa.dev` (was `http://localhost:3000`).
+
 ## [0.2.0] - 2026-02-22
 
 ### Added

@@ -6,12 +6,14 @@ Main client for tracking events to Surfa Analytics.
 
 from typing import Any, Dict, List, Optional
 import logging
+import os
 import time
 
 import requests
 from requests.exceptions import RequestException, Timeout, ConnectionError
 
 from .utils import generate_session_id, validate_ingest_key
+from .uploader import DEFAULT_API_URL
 from .events import (
     Event,
     validate_event,
@@ -51,7 +53,7 @@ class SurfaClient:
     def __init__(
         self,
         ingest_key: str,
-        api_url: str = "http://localhost:3000",
+        api_url: Optional[str] = None,
         flush_at: int = 25,
         timeout_s: int = 10,
     ):
@@ -60,7 +62,7 @@ class SurfaClient:
         
         Args:
             ingest_key: Ingest API key (starts with sk_live_ or sk_test_)
-            api_url: Base URL for Surfa API (default: http://localhost:3000)
+            api_url: Base URL for Surfa API (default: SURFA_API_URL, else https://app.surfa.dev)
             flush_at: Number of events to buffer before auto-flush (default: 25)
             timeout_s: HTTP request timeout in seconds (default: 10)
             
@@ -74,7 +76,7 @@ class SurfaClient:
             raise SurfaConfigError(f"Invalid ingest key: {e}")
         
         self.ingest_key = ingest_key
-        self.api_url = api_url.rstrip('/')
+        self.api_url = (api_url or os.environ.get("SURFA_API_URL") or DEFAULT_API_URL).rstrip('/')
         self.flush_at = flush_at
         self.timeout_s = timeout_s
         
