@@ -46,259 +46,61 @@ Get visibility into how your MCP server is being used - whether it's installed l
 - ✅ You control what data is sent
 - ✅ GDPR and privacy-compliant
 
-## Quick Start for MCP Builders
-
-### 1. Install the SDK
+## Quick Start: one line
 
 ```bash
 pip install surfa-ingest
 ```
 
-**For different MCP distribution modes:**
+```python
+from fastmcp import FastMCP
+from surfa_ingest import with_surfa
 
-<details>
-<summary><b>Local MCP (stdio) - npm/PyPI package</b></summary>
-
-Add to your `pyproject.toml`:
-```toml
-[project]
-dependencies = [
-    "surfa-ingest>=0.2.0",
-    "fastmcp>=2.0.0"
-]
+mcp = with_surfa(FastMCP("my-server"))
 ```
 
-Or `requirements.txt`:
-```
-surfa-ingest>=0.2.0
-fastmcp>=2.0.0
-```
+Set `SURFA_API_KEY` (create one at [app.surfa.dev](https://app.surfa.dev) → Settings → API Keys) and every tool call shows up in your dashboard: tool name, arguments (secrets masked), latency, errors, and which client called it. No per-tool decorators; tools added later are captured too.
 
-Users install your MCP locally:
-```bash
-pip install your-mcp-server
-```
-</details>
+Works with:
 
-<details>
-<summary><b>Remote MCP (SSE) - Hosted service</b></summary>
+| Server | Versions tested |
+|---|---|
+| `fastmcp` `FastMCP` | 2.8, 2.9, 2.14, 3.0, 3.4, 4.1 |
+| Official SDK `mcp.server.fastmcp.FastMCP` (mcp 1.x) | 1.9, 1.10, 1.26, 1.30 |
+| Official SDK `mcp.server.mcpserver.MCPServer` (mcp 2.x) | 2.3 |
+| Low-level `mcp.server.Server` (1.x and 2.x) | as above |
 
-Add to your server's `requirements.txt`:
-```
-surfa-ingest>=0.2.0
-fastmcp>=2.0.0
-```
+It never hurts your server: events are queued in memory (bounded) and uploaded on a background thread; if Surfa is slow, down or rejects the key, tool calls behave exactly as before. Messages go to stderr only, never stdout (the stdio channel).
 
-Deploy to cloud (Vercel, Railway, Fly.io, etc.):
-```bash
-# Set environment variables
-SURFA_INGEST_KEY=sk_live_your_key
-SURFA_API_URL=https://surfa.dev
-```
+| Option | Env var | Default |
+|---|---|---|
+| `api_key` | `SURFA_API_KEY` | required (without it, one warning and nothing is sent) |
+| `api_url` | `SURFA_API_URL` | `https://app.surfa.dev` |
+| `capture_args` | | `True` |
+| `redact_keys` | | extra key names to mask, on top of password/secret/token/api_key/authorization/cookie/... |
+| `session_idle_timeout_s` | | `900` |
+| `flush_delay_s` | | `0.25` |
+| `debug` | | `False` (log uploads to stderr) |
 
-Users connect via URL (no installation needed):
-```json
-{
-  "mcp_servers": [{
-    "type": "url",
-    "url": "https://your-mcp.com/sse"
-  }]
-}
-```
-</details>
+Serverless or short-lived processes: call `flush_surfa()` before returning. A server with its own SIGTERM handler should call `shutdown_surfa()` in it.
 
-### 2. Add to Your MCP Server
+Full guide: [docs.surfa.dev/python-setup](https://docs.surfa.dev/python-setup). Example: [`examples/fastmcp_server.py`](examples/fastmcp_server.py).
 
-Choose the example that matches your distribution mode:
+### Manual events (advanced)
 
-<details>
-<summary><b>Local MCP (stdio) - Claude Desktop, Cursor</b></summary>
+`SurfaClient` sends events you build yourself, for code that isn't an MCP server:
 
 ```python
-from surfa_ingest import SurfaClient
-from fastmcp import FastMCP
 import os
 
-# Initialize analytics
-analytics = SurfaClient(
-    ingest_key=os.getenv("SURFA_INGEST_KEY", "sk_live_your_key"),
-    api_url=os.getenv("SURFA_API_URL", "https://surfa.dev")
-)
-
-# Set runtime for local stdio mode
-analytics.set_runtime(
-    provider="mcp",
-    model="your-mcp-server-name",
-    mode="stdio"  # Local mode
-)
-
-# Initialize MCP server
-mcp = FastMCP("Your MCP Server")
-
-@mcp.tool
-def search_database(query: str) -> dict:
-    analytics.track({
-        "kind": "tool",
-        "subtype": "call_started",
-        "tool_name": "search_database"
-    })
-    
-    result = perform_search(query)
-    
-    analytics.track({
-        "kind": "tool",
-        "subtype": "call_completed",
-        "tool_name": "search_database",
-        "status": "success"
-    })
-    analytics.flush()
-    
-    return result
-
-# Run in stdio mode (for Claude Desktop)
-if __name__ == "__main__":
-    mcp.run()  # Defaults to stdio
-```
-
-**Users configure in Claude Desktop:**
-```json
-{
-  "mcpServers": {
-    "your-mcp": {
-      "command": "npx",
-      "args": ["-y", "your-mcp-server"]
-    }
-  }
-}
-```
-</details>
-
-<details>
-<summary><b>Remote MCP (SSE) - Claude API, OpenAI API</b></summary>
-
-```python
 from surfa_ingest import SurfaClient
-from fastmcp import FastMCP
-import os
 
-# Initialize analytics
-analytics = SurfaClient(
-    ingest_key=os.getenv("SURFA_INGEST_KEY", "sk_live_your_key"),
-    api_url=os.getenv("SURFA_API_URL", "https://surfa.dev")
-)
-
-# Set runtime for remote SSE mode
-analytics.set_runtime(
-    provider="mcp",
-    model="your-mcp-server-name",
-    mode="sse"  # Remote mode
-)
-
-# Initialize MCP server
-mcp = FastMCP("Your MCP Server", stateless_http=True)
-
-@mcp.tool
-def search_database(query: str) -> dict:
-    analytics.track({
-        "kind": "tool",
-        "subtype": "call_started",
-        "tool_name": "search_database"
-    })
-    
-    result = perform_search(query)
-    
-    analytics.track({
-        "kind": "tool",
-        "subtype": "call_completed",
-        "tool_name": "search_database",
-        "status": "success"
-    })
-    analytics.flush()
-    
-    return result
-
-# Run in HTTP/SSE mode
-if __name__ == "__main__":
-    mcp.run(
-        transport="http",
-        host="0.0.0.0",
-        port=8000,
-        path="/mcp"
-    )
+with SurfaClient(ingest_key=os.environ["SURFA_API_KEY"]) as client:
+    client.tool_started("search", args={"query": "mcp"})
+    client.tool_completed("search", latency_ms=120)
 ```
 
-**Users connect via URL:**
-```python
-# Claude API
-response = client.messages.create(
-    model="claude-opus-4",
-    mcp_servers=[{
-        "type": "url",
-        "url": "https://your-mcp.com/mcp"
-    }]
-)
-
-# OpenAI API
-response = client.responses.create(
-    model="gpt-5",
-    tools=[{
-        "type": "mcp",
-        "server_url": "https://your-mcp.com/mcp"
-    }]
-)
-```
-</details>
-
-#### With MCP Context Auto-Detection (v0.2.0+)
-
-**NEW:** Automatically extract `client_id`, `session_id`, and `request_id` from MCP context!
-
-```python
-from surfa_ingest import SurfaClient
-from fastmcp import FastMCP, Context
-
-analytics = SurfaClient(ingest_key="sk_live_...")
-mcp = FastMCP("My MCP Server")
-
-@mcp.tool
-def search_database(query: str, ctx: Context) -> dict:
-    # Just pass ctx - auto-extracts client_id, session_id, request_id!
-    analytics.track({
-        "kind": "tool",
-        "subtype": "call_started",
-        "tool_name": "search_database"
-    }, ctx=ctx)  # ✨ Auto-extraction happens here
-    
-    result = perform_search(query)
-    
-    analytics.track({
-        "kind": "tool",
-        "subtype": "call_completed",
-        "tool_name": "search_database",
-        "status": "success"
-    }, ctx=ctx)
-    
-    return result
-```
-
-**Benefits:**
-- ✅ No manual field extraction
-- ✅ Works with FastMCP and future MCP frameworks
-- ✅ Backwards compatible (ctx is optional)
-- ✅ Never breaks tracking (fails gracefully)
-
-**What gets auto-extracted:**
-- `client_id` - Client identifier (if available from MCP context)
-- `request_id` - Request identifier (for correlating MCP requests)
-
-### 3. Get Your Analytics
-
-Visit your Surfa dashboard to see:
-- Real-time tool usage
-- Performance metrics
-- Task completion rates
-- Client distribution
-- Error tracking
+For MCP servers prefer `with_surfa()`: it records the fields Surfa's metrics read (`input`, `correlation_id`, sessions per client connection), which manual events often miss.
 
 ## What You Get
 

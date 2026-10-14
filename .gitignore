@@ -76,3 +76,6 @@ dmypy.json
 .DS_Store
 Thumbs.db
 PUBLISH_COMPLETE.md
+
+# Local test environments
+.venv*/
